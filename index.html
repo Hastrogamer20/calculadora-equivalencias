@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calculadora de equivalencias de alimentos</title>
+  <!-- Meta para que en móvil se vea bien, sin hacer zoom raro -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: #0f172a;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      transition: background-image 1s ease-in-out;
+    }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at top, rgba(74,222,128,0.18), rgba(15,23,42,0.90));
+      pointer-events: none;
+      z-index: 0;
+    }
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 480px;
+      padding: 20px;
+      border-radius: 18px;
+      background: rgba(248, 250, 252, 0.97);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+      backdrop-filter: blur(6px);
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 0.4rem;
+      text-align: center;
+      color: #14532d;
+    }
+    p {
+      font-size: 0.9rem;
+      color: #355e3b;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #14532d;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px 10px;
+      margin-top: 4px;
+      border-radius: 10px;
+      border: 1px solid #9ca3af;
+      font-size: 0.95rem;
+      background-color: #f9fafb;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #16a34a;
+      box-shadow: 0 0 0 2px rgba(22,163,74,0.25);
+      background-color: #ffffff;
+    }
+    button {
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      border-radius: 999px;
+      font-size: 0.98rem;
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: white;
+      box-shadow: 0 6px 14px rgba(22,163,74,0.35);
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+    }
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(22,163,74,0.45);
+    }
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 10px rgba(22,163,74,0.30);
+    }
+    #resultado {
+      margin-top: 16px;
+      padding: 10px;
+      border-radius: 12px;
+      background: #ecfdf3;
+      border: 1px solid #bbf7d0;
+      font-weight: 600;
+      text-align: center;
+      min-height: 40px;
+      color: #166534;
+      font-size: 0.9rem;
+    }
+    small {
+      display: block;
+      margin-top: 8px;
+      font-size: 0.75rem;
+      color: #6b7280;
+      text-align: center;
+    }
+    .nota {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: #4b5563;
+      background: rgba(187, 247, 208, 0.55);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    /* Ajustes específicos para pantallas pequeñas (móvil) */
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+      .card {
+        padding: 16px;
+        border-radius: 16px;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      p {
+        font-size: 0.85rem;
+      }
+      label {
+        font-size: 0.85rem;
+      }
+      input, select {
+        font-size: 0.9rem;
+      }
+      button {
+        font-size: 0.9rem;
+        padding: 9px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+
+  <div class="card">
+    <h1>Calculadora de equivalencias</h1>
+    <p>
+      Solo se pueden hacer cambios dentro del mismo grupo de alimentos
+      (cereales y tubérculos entre sí, frutas entre sí, grasas entre sí).
+    </p>
+
+    <label for="cantidad">Cantidad que tienes (g)</label>
+    <input type="number" id="cantidad" value="100" min="1" />
+
+    <label for="origen">Alimento que tienes</label>
+    <select id="origen"></select>
+
+    <label for="destino">Alimento que quieres</label>
+    <select id="destino"></select>
+
+    <button id="calcular">Calcular equivalencia</button>
+
+    <div id="resultado"></div>
+
+    <div class="nota">
+      <strong>Nota:</strong> Las equivalencias se calculan solo dentro del mismo grupo:
+      <br/>- Cereales y tubérculos
+      <br/>- Frutas
+      <br/>- Grasas
+    </div>
+
+    <small>
+      Fórmula: cantidad_destino = cantidad_origen × gramos_tabla_destino ÷ gramos_tabla_origen.
+    </small>
+  </div>
+
+  <script>
+    // === FONDOS QUE VAN CAMBIANDO (pon tus imágenes fitness/verduras en la misma carpeta) ===
+    const fondos = [
+      "fondo1.jpg",
+      "fondo2.jpg",
+      "fondo3.jpg"
+    ];
+    let fondoActual = 0;
+    function cambiarFondo() {
+      if (fondos.length === 0) return;
+      document.body.style.backgroundImage = "url('" + fondos[fondoActual] + "')";
+      fondoActual = (fondoActual + 1) % fondos.length;
+    }
+    cambiarFondo();
+    setInterval(cambiarFondo, 6000);
+
+    // === GRUPOS DE ALIMENTOS (según tu tabla) ===
+    // Aquí puedes editar cantidades o añadir alimentos dentro de cada grupo.
+    const grupos = {
+      "Cereales y tubérculos": {
+        "Pasta cruda": 100,
+        "Arroz crudo": 100,
+        "Patata cruda": 325,
+        "Pan": 130,
+        "Avena cruda": 80,
+        "Quinoa cruda": 185,
+        "Cuscús crudo": 125,
+        "Batata cruda": 300
+      },
+      "Frutas": {
+        "Banana": 210,
+        "Manzana": 330,
+        "Uvas": 300,
+        "Mango": 250,
+        "Papaya": 450
+      },
+      "Grasas": {
+        "Aceite de oliva": 38,
+        "Mantequilla": 50,
+        "Aguacate": 200
+      }
+    };
+
+    const origenSelect = document.getElementById("origen");
+    const destinoSelect = document.getElementById("destino");
+    const cantidadInput = document.getElementById("cantidad");
+    const resultadoDiv = document.getElementById("resultado");
+    const calcularBtn = document.getElementById("calcular");
+
+    // Devuelve el grupo al que pertenece un alimento
+    function obtenerGrupoDeAlimento(nombre) {
+      for (const grupo in grupos) {
+        if (Object.prototype.hasOwnProperty.call(grupos[grupo], nombre)) {
+          return grupo;
+        }
+      }
+      return null;
+    }
+
+    // Devuelve los gramos de referencia de un alimento
+    function obtenerGramos(nombre) {
+      const grupo = obtenerGrupoDeAlimento(nombre);
+      if (!grupo) return null;
+      return grupos[grupo][nombre];
+    }
+
+    // Rellenar select de origen con todos los alimentos (mostrando su grupo)
+    function rellenarOrigen() {
+      origenSelect.innerHTML = "";
+      for (const grupo in grupos) {
+        for (const nombre in grupos[grupo]) {
+          const opt = document.createElement("option");
+          opt.value = nombre;
+          opt.textContent = nombre + " (" + grupo + ")";
+          opt.dataset.grupo = grupo;
+          origenSelect.appendChild(opt);
+        }
+      }
+    }
+
+    // Rellenar select de destino solo con alimentos del mismo grupo que el origen
+    function actualizarDestino() {
+      const alimentoOrigen = origenSelect.value;
+      const grupoOrigen = obtenerGrupoDeAlimento(alimentoOrigen);
+      destinoSelect.innerHTML = "";
+
+      if (!grupoOrigen) return;
+
+      for (const nombre in grupos[grupoOrigen]) {
+        const opt = document.createElement("option");
+        opt.value = nombre;
+        opt.textContent = nombre + " (" + grupoOrigen + ")";
+        destinoSelect.appendChild(opt);
+      }
+
+      // Por defecto, si existe pan y el origen está en cereales, lo ponemos
+      if (grupoOrigen === "Cereales y tubérculos") {
+        for (const option of destinoSelect.options) {
+          if (option.value === "Pan") {
+            destinoSelect.value = "Pan";
+            break;
+          }
+        }
+      }
+    }
+
+    rellenarOrigen();
+    // Valores por defecto
+    origenSelect.value = "Pasta cruda";
+    actualizarDestino();
+
+    origenSelect.addEventListener("change", () => {
+      actualizarDestino();
+      resultadoDiv.textContent = "";
+    });
+
+    calcularBtn.addEventListener("click", () => {
+      const cant = parseFloat(cantidadInput.value);
+      const origen = origenSelect.value;
+      const destino = destinoSelect.value;
+
+      if (isNaN(cant) || cant <= 0) {
+        resultadoDiv.textContent = "Introduce una cantidad válida.";
+        return;
+      }
+      if (!origen || !destino) {
+        resultadoDiv.textContent = "Selecciona un alimento de origen y uno de destino.";
+        return;
+      }
+
+      const grupoOrigen = obtenerGrupoDeAlimento(origen);
+      const grupoDestino = obtenerGrupoDeAlimento(destino);
+
+      // Seguridad extra: si por alguna razón no son del mismo grupo, no se calcula
+      if (!grupoOrigen || !grupoDestino || grupoOrigen !== grupoDestino) {
+        resultadoDiv.textContent = "Solo puedes cambiar alimentos dentro del mismo grupo.";
+        return;
+      }
+
+      if (origen === destino) {
+        resultadoDiv.textContent =
+          "Es el mismo alimento: equivalen a " + cant.toFixed(1) + " g.";
+        return;
+      }
+
+      const gramosOrigen = obtenerGramos(origen);
+      const gramosDestino = obtenerGramos(destino);
+
+      if (!gramosOrigen || !gramosDestino) {
+        resultadoDiv.textContent = "Ha habido un problema con las equivalencias.";
+        return;
+      }
+
+      const cantDestino = cant * gramosDestino / gramosOrigen;
+
+      resultadoDiv.textContent =
+        cant.toFixed(1) + " g de " + origen +
+        " ≈ " + cantDestino.toFixed(1) + " g de " + destino;
+    });
+  </script>
+</body>
+</html>
